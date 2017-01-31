@@ -1,119 +1,126 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<?xml version='1.0' encoding='UTF-8'?>
+<project xsi:schemaLocation='http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd' xmlns='http://maven.apache.org/POM/4.0.0' xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'>
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.brigade</groupId>
+    <artifactId>spark_tutorial</artifactId>
+    <version>SNAPSHOT-1</version>
 
-<build>
-    <sourceDirectory>src/main/scala/com/matthewrathbone/spark</sourceDirectory>
-    <testSourceDirectory>src/test/scala/com/matthewrathbone/spark</testSourceDirectory>
-    <pluginManagement>
-            <plugins>
-                <plugin>
-                    <groupId>org.scala-tools</groupId>
-                    <artifactId>maven-scala-plugin</artifactId>
-                    <version>2.9.1</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-compiler-plugin</artifactId>
-                    <version>2.0.2</version>
-                </plugin>
-            </plugins>
-    </pluginManagement>
-    <plugins>
-      <plugin>
-        <groupId>org.scala-tools</groupId>
-        <artifactId>maven-scala-plugin</artifactId>
-        <executions>
-          <execution>
-            <goals>
-              <goal>compile</goal>
-              <goal>testCompile</goal>
-            </goals>
-          </execution>
-        </executions>
-        <configuration>
-          <scalaVersion>2.10.3</scalaVersion>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.scalatest</groupId>
+    <properties>
+        <scala.base.version>2.11</scala.base.version>
+        <scala.version>2.11.8</scala.version>
+        <spark.version>2.0.2</spark.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-core_${scala.base.version}</artifactId>
+            <version>${spark.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-sql_${scala.base.version}</artifactId>
+            <version>${spark.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.scalatest</groupId>
                 <artifactId>scalatest-maven-plugin</artifactId>
-                <version>1.0</version>
+            </plugin>
+
+            <plugin>
+                <groupId>org.scalastyle</groupId>
+                <artifactId>scalastyle-maven-plugin</artifactId>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <!-- we need to specify the following configuration here to include transformations
+                    that will append reference.conf files together, as these properties are not
+                    correctly inherited from plugin management in the parent pom. -->
+                <version>2.3</version>
                 <configuration>
-                    <reportsDirectory>target/surefire-reports</reportsDirectory>
-                    <stdout>W</stdout> <!-- Skip coloring output -->
+                    <createDependencyReducedPom>true</createDependencyReducedPom>
+                    <filters>
+                        <filter>
+                            <artifact>*:*</artifact>
+                            <excludes>
+                                <exclude>org/datanucleus/**</exclude>
+                                <exclude>META-INF/*.SF</exclude>
+                                <exclude>META-INF/*.DSA</exclude>
+                                <exclude>META-INF/*.RSA</exclude>
+                            </excludes>
+                        </filter>
+                    </filters>
                 </configuration>
                 <executions>
                     <execution>
-                        <id>scala-test</id>
                         <goals>
-                            <goal>test</goal>
+                            <goal>shade</goal>
+                        </goals>
+                        <phase>package</phase>
+                        <configuration>
+                            <relocations>
+                                <relocation>
+                                    <pattern>com.google.guava</pattern>
+                                    <shadedPattern>com.brigade.shade.guava</shadedPattern>
+                                    <pattern>com.google.common</pattern>
+                                    <shadedPattern>com.brigade.shade.common</shadedPattern>
+                                </relocation>
+                            </relocations>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"></transformer>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer"></transformer>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                                    <resource>reference.conf</resource>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+
+            <plugin>
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+                <version>3.2.0</version>
+                <configuration>
+                    <!--Without scalaCompatVersion this will warn about dependencies-->
+                    <!--compiled against different minor versions-->
+                    <scalaCompatVersion>${scala.base.version}</scalaCompatVersion>
+                    <ccTestGoals>scalatest:test</ccTestGoals>
+                    <recompileMode>incremental</recompileMode>
+                    <!--Run zinc as a deamon for even faster compilation-->
+                    <!--http://davidb.github.io/scala-maven-plugin/example_incremental.html-->
+                    <useZincServer>true</useZincServer>
+                    <args>
+                        <arg>-feature</arg>
+                        <arg>-deprecation</arg>
+                        <arg>-unchecked</arg>
+                    </args>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>add-source</goal>
+                            <goal>compile</goal>
+                            <goal>testCompile</goal>
                         </goals>
                     </execution>
                 </executions>
-     </plugin>
-     <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-surefire-plugin</artifactId>
-          <version>2.8</version>
-     </plugin>
-     <plugin>
-          <artifactId>maven-assembly-plugin</artifactId>
-          <configuration>
-             <descriptorRefs>
-                 <descriptorRef>jar-with-dependencies</descriptorRef>
-             </descriptorRefs>
-             <archive>
-                        <manifest>
-                            <mainClass>main.scala.com.matthewrathbone.spark.Main</mainClass>
-                        </manifest>
-             </archive>
-            </configuration>
-        </plugin>
-      </plugins>
-  </build>
+            </plugin>
+        </plugins>
+    </build>
 
-  <modelVersion>4.0.0</modelVersion>
-  <groupId>base</groupId>
-  <artifactId>scala-spark</artifactId>
-  <packaging>jar</packaging>
-  <version>1.0-SNAPSHOT</version>
-      <properties>
-        <maven.compiler.source>1.7</maven.compiler.source>
-        <maven.compiler.target>1.7</maven.compiler.target>
-    </properties>
-  <name>scala-spark</name>
-  <url>http://maven.apache.org</url>
-  <dependencies>
-     <dependency>
-       <groupId>org.scala-lang</groupId>
-       <artifactId>scala-library</artifactId>
-       <version>2.10.3</version>
-    </dependency>
-    <dependency>
-      <groupId>org.scalatest</groupId>
-      <artifactId>scalatest_2.10</artifactId>
-      <version>3.0.0-M9</version>
-    </dependency>
-            <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-core_2.10</artifactId>
-            <version>1.2.0</version>
-        </dependency>
-        <dependency>
-             <groupId>junit</groupId>
-              <artifactId>junit</artifactId>
-             <version>4.8.2</version>
-              <scope>test</scope>
-        </dependency>
-  </dependencies>
-    <repositories>
-    <repository>
-      <id>cloudera</id>
-      <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
-    </repository>
-      <repository>
-      <id>conjars.org</id>
-       <url>http://conjars.org/repo</url>
-    </repository>
-  </repositories>
 </project>
