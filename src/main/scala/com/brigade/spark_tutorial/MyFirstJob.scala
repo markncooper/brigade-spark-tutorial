@@ -36,7 +36,7 @@ class MyFirstJob(spark: SparkSession) {
     }
 
     //
-    // Total number of Births
+    // Compute and print the counties with the most births
     //
     val birthsByCountyDesc =
       inputRDD.map { censusEntry =>
