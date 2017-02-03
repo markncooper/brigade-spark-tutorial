@@ -24,6 +24,18 @@
             <artifactId>spark-sql_${scala.base.version}</artifactId>
             <version>${spark.version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.spotify</groupId>
+            <artifactId>spark-bigquery_${scala.base.version}</artifactId>
+            <version>0.2.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>16.0</version>
+        </dependency>
     </dependencies>
 
     <build>
